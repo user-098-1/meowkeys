@@ -8,6 +8,6 @@
   <conclusion file="finish.html" mime-type="text/html"/>
   <choices-outline><line choice="meowkeys"/></choices-outline>
   <choice id="meowkeys" visible="false" title="键盘喵"><pkg-ref id="com.meowkeys.desktop.pkg"/></choice>
-  <pkg-ref id="com.meowkeys.desktop.pkg" version="1.5.0" onConclusion="none">#Meowkeys.pkg</pkg-ref>
+  <pkg-ref id="com.meowkeys.desktop.pkg" version="2.0.0" onConclusion="none">#Meowkeys.pkg</pkg-ref>
   <pkg-ref id="com.meowkeys.desktop.pkg"><must-close><app id="com.meowkeys.desktop"/></must-close></pkg-ref>
 </installer-gui-script>

@@ -10,7 +10,7 @@ ManifestDPIAware true
 
 !define APP "键盘喵"
 !define APPFILE "键盘喵.exe"
-!define VERSION "1.5.0"
+!define VERSION "2.0.0"
 !define UNINSTALL "卸载键盘喵.exe"
 !define DEST "$LOCALAPPDATA\Programs\MeowkeysDesktop"
 !define MENU "$SMPROGRAMS"
@@ -23,7 +23,7 @@ Caption "${APP} ${VERSION} 安装"
 OutFile "${OUTPUT}"
 InstallDir "${DEST}"
 BrandingText "${APP} ${VERSION}"
-VIProductVersion "1.5.0.0"
+VIProductVersion "2.0.0.0"
 VIAddVersionKey /LANG=2052 "ProductName" "${APP}"
 VIAddVersionKey /LANG=2052 "FileDescription" "键盘喵 Windows 安装程序"
 VIAddVersionKey /LANG=2052 "FileVersion" "${VERSION}"
@@ -95,10 +95,10 @@ Section "桌面应用和开始菜单快捷方式" SEC_APP
     !insertmacro QuitWithError "安装目录里已有同名文件。请先移走该文件，然后重试。"
   ${EndIf}
   GetDLLVersion "$INSTDIR\${APPFILE}" $0 $1
-  ${If} $0 > 0x00010005
+  ${If} $0 > 0x00020000
     !insertmacro QuitWithError "已安装版本比这个安装包更新。请使用较新的安装包。"
   ${EndIf}
-  ${If} $0 == 0x00010005
+  ${If} $0 == 0x00020000
   ${AndIf} $1 > 0
     !insertmacro QuitWithError "已安装版本比这个安装包更新。请使用较新的安装包。"
   ${EndIf}
