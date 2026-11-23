@@ -6,8 +6,8 @@
 
 | 平台 | 文件 | 使用方式 |
 | --- | --- | --- |
-| Windows 10 / 11 | `键盘喵-<版本>-Windows.exe` | 免安装，下载后双击运行 |
-| macOS 11 及以上 | `键盘喵-<版本>-macOS.zip` | 解压后把 `键盘喵.app` 拖入「应用程序」 |
+| Windows 10 / 11 | `Meowkeys-<版本>-Windows.exe` | 免安装，下载后双击运行 |
+| macOS 11 及以上 | `Meowkeys-<版本>-macOS.zip` | 解压后把 `键盘喵.app` 拖入「应用程序」 |
 
 首次运行提示：
 
