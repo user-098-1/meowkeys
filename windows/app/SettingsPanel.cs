@@ -69,20 +69,18 @@ internal sealed class SettingsPanel : Window
         card.Child = BuildContent();
         Content = card;
         card.Measure(new Size(272, double.PositiveInfinity));
+        Place();
     }
 
     // Height as measured during construction, used to position the panel before it shows.
     public double OpenHeight { get { return card.DesiredSize.Height; } }
 
-    protected override void OnContentRendered(EventArgs args)
-    {
-        base.OnContentRendered(args);
-        Place();
-    }
-
     private void Place()
     {
-        PresentationSource view = PresentationSource.FromVisual(this);
+        // Runs before Show, so the pet's own source carries the DPI transform and
+        // the size comes from the pre-measured card: the window lands next to the
+        // pet on first paint instead of flashing at the default corner first.
+        PresentationSource view = PresentationSource.FromVisual(pet);
         Matrix fromDevice = view != null && view.CompositionTarget != null
             ? view.CompositionTarget.TransformFromDevice : Matrix.Identity;
         Rect petRect = new Rect(pet.Left, pet.Top, pet.Width, pet.Height);
@@ -97,11 +95,12 @@ internal sealed class SettingsPanel : Window
             if (logical.Contains(center)) { area = logical; break; }
         }
         if (area.IsEmpty) area = new Rect(0, 0, 1200, 800);
-        double x = petRect.Left - ActualWidth - 10;
+        double width = Width, height = card.DesiredSize.Height;
+        double x = petRect.Left - width - 10;
         if (x < area.Left + 4) x = petRect.Right + 10;
-        if (x + ActualWidth > area.Right - 4) x = area.Right - ActualWidth - 4;
-        double y = petRect.Top + petRect.Height * .5 - ActualHeight * .5;
-        y = Math.Max(area.Top + 4, Math.Min(y, area.Bottom - ActualHeight - 4));
+        if (x + width > area.Right - 4) x = area.Right - width - 4;
+        double y = petRect.Top + petRect.Height * .5 - height * .5;
+        y = Math.Max(area.Top + 4, Math.Min(y, area.Bottom - height - 4));
         Left = x; Top = y;
     }
 

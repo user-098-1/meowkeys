@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -42,40 +43,61 @@ internal static class RealCursor
         get { return Path.Combine(Path.GetDirectoryName(Store), "cursor-backup.txt"); }
     }
 
-    // Swaps the sprite in; passing null puts the user's own cursors back.
+    private static readonly object SwapLock = new object();
+
+    // Swaps the sprite in; passing null puts the user's own cursors back. The
+    // registry writes plus the two system-wide reload calls each stall the UI
+    // for a visible beat, so they run on a worker; quit-time Reset stays
+    // synchronous so the restore cannot be cut off by process exit.
     internal static void Apply(CursorStyle? style)
     {
-        if (style.HasValue) Install(style.Value);
-        else Restore();
+        if (style.HasValue)
+        {
+            string file = WriteCursor(style.Value);
+            if (file == null) return;
+            RunCommit(delegate { SwapIn(file); });
+        }
+        else RunCommit(SwapBack);
     }
 
     // Restores the user's cursors when present; safe to call unconditionally.
-    internal static void Reset() { Restore(); }
+    internal static void Reset() { try { SwapBack(); } catch (Exception) { } }
 
-    private static void Install(CursorStyle style)
+    private static void RunCommit(Action swap)
     {
-        string file = WriteCursor(style);
-        if (file == null) return;
+        ThreadPool.QueueUserWorkItem(delegate
+        {
+            lock (SwapLock)
+            {
+                try { swap(); }
+                catch (Exception) { }
+            }
+        });
+    }
+
+    private static void SwapIn(string file)
+    {
         RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Cursors", true);
         if (key == null) return;
         if (!File.Exists(BackupFile))
             File.WriteAllText(BackupFile, key.GetValue("Arrow", "") + "\n" + key.GetValue("IBeam", "") + "\n" +
                               Convert.ToString(key.GetValue("CursorBaseSize", "")));
+        object previous = key.GetValue("CursorBaseSize");
         key.SetValue("Arrow", file, RegistryValueKind.ExpandString);
         key.SetValue("IBeam", file, RegistryValueKind.ExpandString);
         key.SetValue("CursorBaseSize", DisplaySize, RegistryValueKind.DWord);
-        key.Close();
-        SystemParametersInfo(SpiSetCursors, 0, IntPtr.Zero, SpifUpdateIni | SpifSendChange);
-        SystemParametersInfo(SpiSetCursorSize, 0, (IntPtr)DisplaySize, SpifUpdateIni | SpifSendChange);
+        Reload(key, DisplaySize, !(previous is int) || (int)previous != DisplaySize);
     }
 
-    private static void Restore()
+    private static void SwapBack()
     {
         if (!File.Exists(BackupFile)) return;
         RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Cursors", true);
         int baseSize = 32;
+        bool sizeChanged = true;
         if (key != null)
         {
+            object previous = key.GetValue("CursorBaseSize");
             string[] saved = File.ReadAllLines(BackupFile);
             key.SetValue("Arrow", saved.Length > 0 ? saved[0] : "", RegistryValueKind.ExpandString);
             key.SetValue("IBeam", saved.Length > 1 ? saved[1] : "", RegistryValueKind.ExpandString);
@@ -83,11 +105,19 @@ internal static class RealCursor
                 key.SetValue("CursorBaseSize", baseSize, RegistryValueKind.DWord);
             else
                 key.DeleteValue("CursorBaseSize", false);
+            sizeChanged = !(previous is int) || (int)previous != baseSize;
             key.Close();
         }
         File.Delete(BackupFile);
+        Reload(key, baseSize, sizeChanged);
+    }
+
+    private static void Reload(RegistryKey key, int baseSize, bool sizeChanged)
+    {
+        if (key != null) key.Close();
         SystemParametersInfo(SpiSetCursors, 0, IntPtr.Zero, SpifUpdateIni | SpifSendChange);
-        SystemParametersInfo(SpiSetCursorSize, 0, (IntPtr)baseSize, SpifUpdateIni | SpifSendChange);
+        if (sizeChanged)
+            SystemParametersInfo(SpiSetCursorSize, 0, (IntPtr)baseSize, SpifUpdateIni | SpifSendChange);
     }
 
     private static string WriteCursor(CursorStyle style)
