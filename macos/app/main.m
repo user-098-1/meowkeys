@@ -80,7 +80,7 @@ static NSArray<NSNumber *> *Sizes(void) { return @[@.5,@.75,@1.0,@1.25,@1.5]; }
     _timer.tolerance=.004;[[NSRunLoop mainRunLoop] addTimer:_timer forMode:NSRunLoopCommonModes];
     if(!_pet.hasArt){
         NSAlert *alert=[NSAlert new];alert.messageText=@"桌宠图像资源缺失";
-        alert.informativeText=@"请从安装包重新安装完整的“键盘喵”应用。";[alert runModal];[NSApp terminate:nil];return;
+        alert.informativeText=@"请重新解压完整的“键盘喵”应用。";[alert runModal];[NSApp terminate:nil];return;
     }
     if(!_permission && ![defaults boolForKey:@"explainedInput"]){
         [defaults setBool:YES forKey:@"explainedInput"];

@@ -15,17 +15,16 @@ export COPYFILE_DISABLE=1
 
 plist="$root/Info.plist"
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")"
-identifier="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")"
 minimum="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$plist")"
 app_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$plist").app"
 executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$plist")"
-package_name="键盘喵-${version}-macOS通用安装包.pkg"
+zip_name="键盘喵-${version}-macOS.zip"
 app="$stage/payload/$app_name"
 contents="$app/Contents"
 binary="$contents/MacOS/$executable"
 
 sdk="$(xcrun --sdk macosx --show-sdk-path)"
-mkdir -p "$contents/MacOS" "$stage/components"
+mkdir -p "$contents/MacOS"
 for arch in arm64 x86_64; do
     xcrun --sdk macosx clang -arch "$arch" -isysroot "$sdk" \
         "-mmacosx-version-min=$minimum" -fobjc-arc -fblocks -O2 -g0 \
@@ -42,16 +41,13 @@ ditto --norsrc --noextattr "$root/resources" "$contents/Resources"
 codesign --force --sign - "$app"
 codesign --verify --strict --all-architectures "$app"
 
-pkgbuild --root "$stage/payload" --install-location /Applications \
-    --component-plist "$root/installer/components.plist" \
-    --identifier "$identifier.pkg" --version "$version" "$stage/components/Meowkeys.pkg"
-productbuild --distribution "$root/installer/distribution.xml" \
-    --resources "$root/installer/resources" --package-path "$stage/components" \
-    "$stage/$package_name"
+# keepParent puts 键盘喵.app at the top level of the zip; sequesterRsrc keeps
+# Finder-built archives clean for users on other machines.
+ditto -c -k --sequesterRsrc --keepParent "$app" "$stage/$zip_name"
 
 if [[ -e "$output/$app_name" ]]; then
     mv "$output/$app_name" "$stage/previous.app"
 fi
 mv "$app" "$output/$app_name"
-mv -f "$stage/$package_name" "$output/$package_name"
-printf '%s\n' "$output/$app_name" "$output/$package_name"
+mv -f "$stage/$zip_name" "$output/$zip_name"
+printf '%s\n' "$output/$app_name" "$output/$zip_name"

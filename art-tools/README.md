@@ -1,6 +1,6 @@
 # 重新生成 macOS 桌宠素材
 
-macOS 安装包使用仓库里的 `macos/resources/Art`。修改猫、键盘或鼠标的矢量绘制后，可在装有 .NET Framework 4.x 和 WPF 的 Windows 上运行以下命令，更新这套素材。
+macOS 应用使用仓库里的 `macos/resources/Art`。修改猫、键盘或鼠标的矢量绘制后，可在装有 .NET Framework 4.x 和 WPF 的 Windows 上运行以下命令，更新这套素材。
 
 ```powershell
 .\art-tools\Export-Art.ps1
