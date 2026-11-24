@@ -1,0 +1,38 @@
+name: 构建 macOS 版
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要构建并上传的 Release tag，如 v2.0.0（留空则只构建不上传）'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: 构建
+        run: bash macos/build.sh
+
+      - name: 保存构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          path: macos/build/Meowkeys-*-macOS.zip
+
+      - name: 上传到 Release
+        if: ${{ github.event_name == 'push' || inputs.tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          files: macos/build/Meowkeys-*-macOS.zip
