@@ -20,7 +20,9 @@ internal sealed class SettingsPanel : Window
     private readonly PetWindow pet;
     private readonly Preferences settings;
     private readonly DispatcherTimer saveDelay = new DispatcherTimer();
-    private readonly ControlTemplate pillIdle, pillActive, ghost, sliderTemplate, toggleTemplate;
+    private readonly ControlTemplate pillIdle, pillActive, ghost, sliderTemplate, toggleTemplate, comboTemplate;
+    private readonly Style comboItemStyle;
+    private readonly DataTemplate comboItemTemplate;
     private readonly Border card;
     private bool closing;
     private Slider scaleSlider;
@@ -46,6 +48,9 @@ internal sealed class SettingsPanel : Window
         ghost = PillTemplate("Transparent", "#2C2933", "#373340");
         sliderTemplate = BuildSliderTemplate();
         toggleTemplate = BuildToggleTemplate();
+        comboTemplate = BuildComboTemplate();
+        comboItemStyle = BuildComboItemStyle();
+        comboItemTemplate = BuildComboItemTemplate();
 
         saveDelay.Interval = TimeSpan.FromMilliseconds(300);
         saveDelay.Tick += delegate { saveDelay.Stop(); settings.Save(); };
@@ -135,10 +140,7 @@ internal sealed class SettingsPanel : Window
         root.Children.Add(head);
 
         root.Children.Add(Section("小猫样式"));
-        StackPanel cats = Row();
-        cats.Children.Add(CatPill(CatStyle.Black, "黑猫"));
-        cats.Children.Add(CatPill(CatStyle.Tuxedo, "奶牛猫"));
-        root.Children.Add(cats);
+        root.Children.Add(CatCombo());
 
         scaleValue = new TextBlock { FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Paint("#CDF159") };
         root.Children.Add(Section("小猫大小", scaleValue));
@@ -223,29 +225,40 @@ internal sealed class SettingsPanel : Window
         saveDelay.Start();
     }
 
-    private Button CatPill(CatStyle style, string label)
+    private sealed class CatChoice
     {
-        bool selected = settings.Cat == style;
-        StackPanel box = new StackPanel { Orientation = Orientation.Horizontal };
-        box.Children.Add(new Image
+        public CatStyle Style { get; set; }
+        public string Name { get; set; }
+        public ImageSource Portrait { get; set; }
+    }
+
+    private ComboBox CatCombo()
+    {
+        CatChoice[] choices = {
+            new CatChoice { Style = CatStyle.Black, Name = "黑猫", Portrait = PortraitImage(CatStyle.Black) },
+            new CatChoice { Style = CatStyle.Tuxedo, Name = "奶牛猫", Portrait = PortraitImage(CatStyle.Tuxedo) },
+            new CatChoice { Style = CatStyle.Siamese, Name = "暹罗猫", Portrait = PortraitImage(CatStyle.Siamese) },
+            new CatChoice { Style = CatStyle.Golden, Name = "金渐层", Portrait = PortraitImage(CatStyle.Golden) }
+        };
+        ComboBox combo = new ComboBox
         {
-            Source = PortraitImage(style),
-            Width = 30, Height = 30,
-            Stretch = Stretch.Uniform,
-            Margin = new Thickness(0, 0, 8, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        });
-        box.Children.Add(new TextBlock
+            Template = comboTemplate,
+            ItemContainerStyle = comboItemStyle,
+            ItemTemplate = comboItemTemplate,
+            ItemsSource = choices,
+            Cursor = Cursors.Hand,
+            Focusable = false,
+            Margin = new Thickness(0, 2, 0, 0)
+        };
+        combo.SelectedItem = choices[(int)settings.Cat];
+        combo.SelectionChanged += delegate(object sender, SelectionChangedEventArgs e)
         {
-            Text = label,
-            FontSize = 12,
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = Paint(selected ? "#23211A" : "#C9C4D4")
-        });
-        Button pill = new Button { Content = box, Template = selected ? pillActive : pillIdle, Cursor = Cursors.Hand, Focusable = false };
-        pill.Click += delegate { pet.SetCatStyle(style); Refresh(); };
-        pill.Margin = new Thickness(0, 0, 10, 0);
-        return pill;
+            CatChoice choice = ((ComboBox)sender).SelectedItem as CatChoice;
+            if (choice == null || choice.Style == settings.Cat) return;
+            pet.SetCatStyle(choice.Style);
+            Refresh();
+        };
+        return combo;
     }
 
     private Button TextPill(string label, bool selected, Action click)
@@ -390,5 +403,63 @@ internal sealed class SettingsPanel : Window
             "</Trigger>" +
             "<Trigger Property='IsMouseOver' Value='True'><Setter TargetName='dot' Property='Fill' Value='#E8E4F2'/></Trigger>" +
             "</ControlTemplate.Triggers></ControlTemplate>");
+    }
+
+    private DataTemplate BuildComboItemTemplate()
+    {
+        return (DataTemplate)XamlReader.Parse(
+            "<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' " +
+            "xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'>" +
+            "<StackPanel Orientation='Horizontal'>" +
+            "<Image Source='{Binding Portrait}' Width='22' Height='22' Stretch='Uniform' VerticalAlignment='Center'/>" +
+            "<TextBlock Text='{Binding Name}' FontSize='12' Foreground='#C9C4D4' " +
+            "VerticalAlignment='Center' Margin='9,0,0,0'/>" +
+            "</StackPanel></DataTemplate>");
+    }
+
+    private static ControlTemplate BuildComboTemplate()
+    {
+        return (ControlTemplate)XamlReader.Parse(
+            "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' " +
+            "xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='ComboBox'>" +
+            "<Grid Background='Transparent'>" +
+            "<ToggleButton Focusable='False' ClickMode='Press' " +
+            "IsChecked='{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}'>" +
+            "<ToggleButton.Template><ControlTemplate TargetType='ToggleButton'>" +
+            "<Border x:Name='bd' Background='#2C2933' CornerRadius='8' Padding='10,6'>" +
+            "<TextBlock Text='\u25BE' FontSize='11' Foreground='#8F8A9C' HorizontalAlignment='Right' VerticalAlignment='Center'/>" +
+            "</Border>" +
+            "<ControlTemplate.Triggers>" +
+            "<Trigger Property='IsMouseOver' Value='True'><Setter TargetName='bd' Property='Background' Value='#373340'/></Trigger>" +
+            "<Trigger Property='IsChecked' Value='True'><Setter TargetName='bd' Property='Background' Value='#423E4A'/></Trigger>" +
+            "</ControlTemplate.Triggers></ControlTemplate></ToggleButton.Template>" +
+            "</ToggleButton>" +
+            "<ContentPresenter IsHitTestVisible='False' Margin='10,6' HorizontalAlignment='Left' VerticalAlignment='Center' " +
+            "Content='{TemplateBinding SelectionBoxItem}' " +
+            "ContentTemplate='{TemplateBinding SelectionBoxItemTemplate}'/>" +
+            "<Popup IsOpen='{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}' Placement='Bottom' AllowsTransparency='True' " +
+            "PopupAnimation='Fade' Focusable='False'>" +
+            "<Border Background='#2A2730' BorderBrush='#3A3641' BorderThickness='1' CornerRadius='8' " +
+            "Margin='0,6,0,0' MinWidth='{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}'>" +
+            "<ScrollViewer MaxHeight='248' VerticalScrollBarVisibility='Auto'>" +
+            "<ItemsPresenter Margin='4'/></ScrollViewer></Border></Popup>" +
+            "</Grid></ControlTemplate>");
+    }
+
+    private static Style BuildComboItemStyle()
+    {
+        return (Style)XamlReader.Parse(
+            "<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' " +
+            "xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='ComboBoxItem'>" +
+            "<Setter Property='Cursor' Value='Hand'/>" +
+            "<Setter Property='Template'>" +
+            "<Setter.Value><ControlTemplate TargetType='ComboBoxItem'>" +
+            "<Border x:Name='bd' Background='Transparent' CornerRadius='6' Margin='0,1' Padding='8,6'>" +
+            "<ContentPresenter/></Border>" +
+            "<ControlTemplate.Triggers>" +
+            "<Trigger Property='IsHighlighted' Value='True'><Setter TargetName='bd' Property='Background' Value='#373340'/></Trigger>" +
+            "<Trigger Property='IsSelected' Value='True'><Setter TargetName='bd' Property='Background' Value='#3A3641'/></Trigger>" +
+            "</ControlTemplate.Triggers></ControlTemplate></Setter.Value>" +
+            "</Setter></Style>");
     }
 }

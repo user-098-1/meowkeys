@@ -15,6 +15,7 @@ macOS 应用使用仓库里的 `macos/resources/Art`。修改猫、键盘或鼠�
 | 要调整的内容 | 对应源码 |
 | --- | --- |
 | 黑猫轮廓、姿态和奶牛猫白纹 | `windows/app/CatArt.cs`、`windows/app/TuxedoArt.cs` |
+| 暹罗猫、金渐层毛色与花纹 | `windows/app/SiameseArt.cs`、`windows/app/GoldenArt.cs`（毛色集中在 `CatArt.cs` 的 Coats） |
 | 键盘、键位和鼠标按键外观 | `windows/app/DeskArt.cs`、`windows/app/MouseArt.cs`、`windows/app/DeskStyle.cs` |
 | 导出图层、视线方向和动画采样 | `art-tools/ExportArt.cs` |
 | macOS 的实时前爪绘制 | `macos/app/PetArms.h` |

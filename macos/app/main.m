@@ -61,7 +61,7 @@ static NSArray<NSNumber *> *Sizes(void) { return @[@.5,@.75,@1.0,@1.25,@1.5]; }
     _window.collectionBehavior=NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorFullScreenAuxiliary|
                                NSWindowCollectionBehaviorIgnoresCycle;
     _window.ignoresMouseEvents=_through;
-    _pet=[[KCPetView alloc] initWithFrame:frame];_pet.catStyle=StyleDefault(@"cat",0,1);_pet.keyboardStyle=StyleDefault(@"keyboard",1,3);
+    _pet=[[KCPetView alloc] initWithFrame:frame];_pet.catStyle=StyleDefault(@"cat",0,3);_pet.keyboardStyle=StyleDefault(@"keyboard",1,3);
     _pet.mouseStyle=StyleDefault(@"mouse",3,3);_cursorOn=[defaults boolForKey:@"cursorEnabled"];_cursorStyle=StyleDefault(@"cursorStyle",0,1);_pet.showsLabels=[defaults boolForKey:@"labels"];
     _pet.autoresizingMask=NSViewWidthSizable|NSViewHeightSizable;_window.contentView=_pet;
     _status=[NSStatusBar.systemStatusBar statusItemWithLength:NSSquareStatusItemLength];
@@ -195,7 +195,7 @@ static NSArray<NSNumber *> *Sizes(void) { return @[@.5,@.75,@1.0,@1.25,@1.5]; }
 }
 - (void)rebuildMenu {
     [_menu removeAllItems];
-    [self styleGroup:@"猫咪样式" choices:@[@"黑猫",@"奶牛猫"] current:_pet.catStyle action:@selector(catAction:) resource:@"portrait-%ld"];
+    [self styleGroup:@"猫咪样式" choices:@[@"黑猫",@"奶牛猫",@"暹罗猫",@"金渐层"] current:_pet.catStyle action:@selector(catAction:) resource:@"portrait-%ld"];
     [self styleGroup:@"键盘样式" choices:@[@"经典奶油",@"薄荷打字机",@"冰蓝电竞",@"胡桃木"] current:_pet.keyboardStyle action:@selector(keyboardAction:) resource:@"keyboard-%ld"];
     [self styleGroup:@"鼠标样式" choices:@[@"奶油滚轮",@"雾紫鹅卵石",@"冰蓝电竞",@"酒红轨迹球"] current:_pet.mouseStyle action:@selector(mouseAction:) resource:@"mouse-%ld-normal"];
     NSMenuItem *cursorGroup=[self styleGroup:@"光标样式" choices:@[@"小鸟",@"逗猫棒"] current:_cursorStyle action:@selector(cursorStyleAction:) resource:@"cursor-%ld"];

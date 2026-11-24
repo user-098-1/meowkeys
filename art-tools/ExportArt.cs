@@ -17,7 +17,6 @@ internal static class ExportArt
     static string output;
     static readonly Dictionary<string, object> sprites = new Dictionary<string, object>();
     static readonly Dictionary<string, object> keys = new Dictionary<string, object>();
-    static readonly Type Tuxedo = typeof(CatArt).GetNestedType("Tuxedo", BindingFlags.NonPublic);
 
     static T Field<T>(Type type,string name) { return (T)type.GetField(name,StaticMember).GetValue(null); }
     static void Call(Type type,string name,params object[] args) { type.GetMethod(name,StaticMember).Invoke(null,args); }
@@ -46,27 +45,29 @@ internal static class ExportArt
 
     static void Cats()
     {
-        for(int c=0;c<2;c++){
-            int cat=c;
-            bool tuxedo=c==1;
+        CatStyle[] styles=(CatStyle[])Enum.GetValues(typeof(CatStyle));
+        for(int c=0;c<styles.Length;c++){
+            CatStyle style=styles[c];
+            CatStyle bodyStyle=style;
             Sprite("body-"+c, delegate(DrawingContext dc){
-                Geometry body=Field<Geometry>(typeof(CatArt),"Body");
-                dc.DrawGeometry(Field<Brush>(typeof(CatArt),"Fur"),null,body);
-                if(tuxedo)Call(Tuxedo,"DrawBodyMarkings",dc,body);
+                CatArt.DrawBodySprite(dc,bodyStyle);
             });
             for(int phase=0;phase<8;phase++){
                 double angular=2*Math.PI*phase/8;
+                CatStyle tailStyle=style;
                 Sprite("tail-"+c+"-"+phase, delegate(DrawingContext dc){
-                    Call(typeof(CatArt),"Tail",dc,angular/1.9,tuxedo);
+                    Call(typeof(CatArt),"Tail",dc,angular/1.9,tailStyle);
                 });
             }
             for(int ix=0;ix<3;ix++)for(int iy=0;iy<3;iy++)for(int lid=0;lid<3;lid++){
                 double gx=ix-1.0,gy=iy-1.0,blink=lid*.5;
+                CatStyle headStyle=style;
                 Sprite("head-"+c+"-"+ix+"-"+iy+"-"+lid,delegate(DrawingContext dc){
-                    Call(typeof(CatArt),"DrawHead",dc,tuxedo,gx,gy,blink);
+                    Call(typeof(CatArt),"DrawHead",dc,headStyle,gx,gy,blink);
                 });
             }
-            Sprite("portrait-"+c,delegate(DrawingContext dc){CatArt.DrawPortrait(dc,(CatStyle)cat);});
+            CatStyle portraitStyle=style;
+            Sprite("portrait-"+c,delegate(DrawingContext dc){CatArt.DrawPortrait(dc,portraitStyle);});
         }
     }
 

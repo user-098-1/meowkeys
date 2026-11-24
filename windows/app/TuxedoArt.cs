@@ -24,16 +24,6 @@ public static partial class CatArt
             "M -21,10 C -20,3 -13,-1 -6,-.5 C -2,-.2 2,-.2 6,-.5 " +
             "C 13,-1 20,3 21,10 C 22,17 18,26 10,29 C 4,31 -4,31 -10,29 " +
             "C -18,26 -22,17 -21,10 Z");
-        private static readonly Geometry Nose = Shape(
-            "M -4.2,7.2 C -4.2,5.6 -2.6,4.9 0,5.3 C 2.6,4.9 4.2,5.6 4.2,7.2 " +
-            "C 4.2,9 2,10.6 0,10.6 C -2,10.6 -4.2,9 -4.2,7.2 Z");
-        private static readonly Geometry Smile = Shape(
-            "M 0,10.6 L 0,13.2 C -1.2,16 -4.6,16.4 -6.6,14.2 " +
-            "M 0,13.2 C 1.3,15.8 4.8,16 6.6,13.8");
-        private static readonly Geometry Sock = Shape(
-            "M -9.6,.5 C -10.4,-4.5 -10.2,-9.5 -7.6,-11.2 Q -5.2,-12.6 -2.2,-11.3 " +
-            "Q .8,-9.8 3,-11.2 Q 5.9,-13 8.1,-10.9 Q 10.1,-7.5 9,-.5 " +
-            "Q 7,7.4 0,9.4 Q -8.1,8.3 -9.6,.5 Z");
 
         internal static void DrawBodyMarkings(DrawingContext dc, Geometry body)
         {
@@ -48,8 +38,8 @@ public static partial class CatArt
             dc.DrawGeometry(White, null, Blaze);
             dc.PushTransform(new TranslateTransform(gx * 2.9, 0));
             dc.DrawGeometry(White, null, Muzzle);
-            dc.DrawGeometry(NoseInk, null, Nose);
-            dc.DrawGeometry(null, Mouth, Smile);
+            dc.DrawGeometry(NoseInk, null, NoseShape);
+            dc.DrawGeometry(null, Mouth, SmileShape);
             dc.Pop();
             dc.Pop();
         }
@@ -57,14 +47,7 @@ public static partial class CatArt
         internal static void DrawSock(DrawingContext dc, Geometry arm, Point paw, Vector direction,
                                       double radius, double activity)
         {
-            if (direction.LengthSquared < .001) direction = new Vector(0,1);
-            direction.Normalize();
-            dc.PushClip(arm);
-            dc.PushTransform(new MatrixTransform(direction.Y,-direction.X,direction.X,direction.Y,paw.X,paw.Y));
-            dc.DrawGeometry(White, null, Sock);
-            dc.Pop();
-            dc.Pop();
-            dc.DrawEllipse(White, PawEdge, paw, radius + .35, radius * (.94 - .06 * activity));
+            PawSock(dc, White, PawEdge, SockShape, arm, paw, direction, radius, activity);
         }
 
         internal static void DrawTailTip(DrawingContext dc, Geometry tail, double tip)

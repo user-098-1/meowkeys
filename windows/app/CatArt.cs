@@ -12,11 +12,11 @@ public static partial class CatArt
         return brush;
     }
 
-    private static Brush Wash(byte[] light, byte[] dark, Point from, Point to)
+    private static Brush Wash(byte[] start, byte[] end, Point from, Point to)
     {
         LinearGradientBrush brush = new LinearGradientBrush(
-            Color.FromRgb(light[0], light[1], light[2]),
-            Color.FromRgb(dark[0], dark[1], dark[2]), from, to);
+            Color.FromRgb(start[0], start[1], start[2]),
+            Color.FromRgb(end[0], end[1], end[2]), from, to);
         brush.Freeze();
         return brush;
     }
@@ -38,17 +38,67 @@ public static partial class CatArt
         return g;
     }
 
-    private static readonly Brush Fur = Wash(new byte[] { 31,29,32 }, new byte[] { 22,21,24 }, new Point(0,0), new Point(1,0.85));
-    private static readonly Brush Face = Wash(new byte[] { 32,30,32 }, new byte[] { 24,23,25 }, new Point(0,0), new Point(0.9,1));
-    private static readonly Brush Foreleg = Wash(new byte[] { 30,28,31 }, new byte[] { 24,23,26 }, new Point(0.2,0), new Point(0.9,1));
-    private static readonly Brush Iris = Wash(new byte[] { 215,245,80 }, new byte[] { 182,224,62 }, new Point(0.2,0), new Point(0.83,1));
+    // Coat colors are locked here, one entry per CatStyle; the marking shapes
+    // for each coat live in their own style files.
+    internal sealed class CatCoat
+    {
+        public Brush Fur, Face, Foreleg, Iris, Ear, Pupil;
+        public Pen Lid, Whisker, Root, PawRim, EyeRim;
+    }
+
     private static readonly Brush Pupil = Ink(22,24,16);
-    private static readonly Brush Ear = Ink(36,32,36);
-    private static readonly Brush WhiskerRoot = Ink(172,169,162);
-    private static readonly Pen Whisker = Stroke(Ink(39,37,38), 0.9);
-    private static readonly Pen RootPen = Stroke(WhiskerRoot, 0.95);
-    private static readonly Pen Lid = Stroke(Ink(189,221,70), 2.2);
-    private static readonly Pen PawLight = Stroke(Ink(92,89,91), 0.95);
+
+    private static CatCoat Define(Brush fur, Brush face, Brush foreleg, Brush iris, Brush ear,
+                                  Pen lid, Pen whisker, Pen root, Pen pawRim, Pen eyeRim)
+    {
+        return new CatCoat { Fur=fur, Face=face, Foreleg=foreleg, Iris=iris, Ear=ear,
+                             Pupil=Pupil, Lid=lid, Whisker=whisker, Root=root, PawRim=pawRim, EyeRim=eyeRim };
+    }
+
+    private static readonly CatCoat[] Coats = BuildCoats();
+
+    private static CatCoat[] BuildCoats()
+    {
+        CatCoat black = Define(
+            Wash(new byte[] { 31,29,32 }, new byte[] { 22,21,24 }, new Point(0,0), new Point(1,0.85)),
+            Wash(new byte[] { 32,30,32 }, new byte[] { 24,23,25 }, new Point(0,0), new Point(0.9,1)),
+            Wash(new byte[] { 30,28,31 }, new byte[] { 24,23,26 }, new Point(0.2,0), new Point(0.9,1)),
+            Wash(new byte[] { 215,245,80 }, new byte[] { 182,224,62 }, new Point(0.2,0), new Point(0.83,1)),
+            Ink(36,32,36),
+            Stroke(Ink(189,221,70), 2.2),
+            Stroke(Ink(39,37,38), 0.9),
+            Stroke(Ink(172,169,162), 0.95),
+            Stroke(Ink(92,89,91), 0.95),
+            null);
+        CatCoat siamese = Define(
+            Wash(new byte[] { 240,232,218 }, new byte[] { 226,216,200 }, new Point(0,0), new Point(1,0.85)),
+            Wash(new byte[] { 243,236,222 }, new byte[] { 228,218,202 }, new Point(0,0), new Point(0.9,1)),
+            Wash(new byte[] { 241,234,220 }, new byte[] { 228,218,204 }, new Point(0.2,0), new Point(0.9,1)),
+            Wash(new byte[] { 150,205,246 }, new byte[] { 62,132,216 }, new Point(0.2,0), new Point(0.83,1)),
+            Ink(56,43,40),
+            Stroke(Ink(168,212,248), 2.2),
+            Stroke(Ink(216,206,190), 0.9),
+            Stroke(Ink(202,190,172), 0.95),
+            Stroke(Ink(168,156,144), 0.95),
+            null);
+        CatCoat golden = Define(
+            Wash(new byte[] { 246,214,150 }, new byte[] { 198,152,90 }, new Point(0.9,0.15), new Point(0.05,0.8)),
+            Wash(new byte[] { 228,186,118 }, new byte[] { 248,228,184 }, new Point(0.4,0), new Point(0.55,1)),
+            Wash(new byte[] { 246,220,170 }, new byte[] { 216,178,118 }, new Point(0.2,0), new Point(0.9,1)),
+            Wash(new byte[] { 168,230,158 }, new byte[] { 64,176,104 }, new Point(0.2,0), new Point(0.83,1)),
+            Ink(224,164,128),
+            Stroke(Ink(150,214,150), 2.2),
+            Stroke(Ink(120,94,64), 0.9),
+            Stroke(Ink(150,116,74), 0.95),
+            Stroke(Ink(150,116,74), 0.95),
+            Stroke(Ink(34,28,26), 1.6));
+        return new CatCoat[] { black, black, siamese, golden };
+    }
+
+    private static CatCoat CoatOf(CatStyle style)
+    {
+        return Coats[(int)style];
+    }
 
     private static readonly Geometry Body = Shape(
         "M 175,102 C 175,121 173,140 168,156 C 163,173 157,195 160,210 " +
@@ -66,6 +116,31 @@ public static partial class CatArt
     private static readonly Geometry EarLeft = Shape("M -40,-35 Q -40,-51 -36,-56 Q -32,-54 -23,-43 Q -32,-42 -40,-35 Z");
     private static readonly Geometry EarRight = Shape("M 24,-44 Q 33,-56 35,-57 Q 39,-52 40,-36 Q 35,-41 24,-44 Z");
 
+    // Marking shapes shared by several coats: the paw sock, nose leather and smile.
+    internal static readonly Geometry SockShape = Shape(
+        "M -9.6,.5 C -10.4,-4.5 -10.2,-9.5 -7.6,-11.2 Q -5.2,-12.6 -2.2,-11.3 " +
+        "Q .8,-9.8 3,-11.2 Q 5.9,-13 8.1,-10.9 Q 10.1,-7.5 9,-.5 " +
+        "Q 7,7.4 0,9.4 Q -8.1,8.3 -9.6,.5 Z");
+    internal static readonly Geometry NoseShape = Shape(
+        "M -4.2,7.2 C -4.2,5.6 -2.6,4.9 0,5.3 C 2.6,4.9 4.2,5.6 4.2,7.2 " +
+        "C 4.2,9 2,10.6 0,10.6 C -2,10.6 -4.2,9 -4.2,7.2 Z");
+    internal static readonly Geometry SmileShape = Shape(
+        "M 0,10.6 L 0,13.2 C -1.2,16 -4.6,16.4 -6.6,14.2 " +
+        "M 0,13.2 C 1.3,15.8 4.8,16 6.6,13.8");
+
+    internal static void PawSock(DrawingContext dc, Brush fill, Pen edge, Geometry sock, Geometry arm,
+                                 Point paw, Vector direction, double radius, double activity)
+    {
+        if (direction.LengthSquared < .001) direction = new Vector(0,1);
+        direction.Normalize();
+        dc.PushClip(arm);
+        dc.PushTransform(new MatrixTransform(direction.Y,-direction.X,direction.X,direction.Y,paw.X,paw.Y));
+        dc.DrawGeometry(fill, null, sock);
+        dc.Pop();
+        dc.Pop();
+        dc.DrawEllipse(fill, edge, paw, radius + .35, radius * (.94 - .06 * activity));
+    }
+
     private static double Limit(double value, double low, double high)
     {
         return Math.Max(low, Math.Min(high, value));
@@ -77,7 +152,7 @@ public static partial class CatArt
         return x * x * (3 - 2 * x);
     }
 
-    private static void Tail(DrawingContext dc, double t, bool tuxedo)
+    private static void Tail(DrawingContext dc, double t, CatStyle style)
     {
         double wave = Math.Sin(t * 1.9);
         double tip = Math.Sin(t * 1.9 - 0.68);
@@ -92,8 +167,10 @@ public static partial class CatArt
             g.BezierTo(new Point(311,180 + tip * 4),new Point(305,191),new Point(298,202 + wave * 2),true,true);
             g.BezierTo(new Point(289,217 + wave),new Point(268,220),new Point(251,214),true,true);
         }
-        dc.DrawGeometry(Fur, null, tail);
-        if (tuxedo) Tuxedo.DrawTailTip(dc, tail, tip);
+        dc.DrawGeometry(CoatOf(style).Fur, null, tail);
+        if (style == CatStyle.Tuxedo) Tuxedo.DrawTailTip(dc, tail, tip);
+        else if (style == CatStyle.Siamese) Siamese.DrawTailTip(dc, tail, tip);
+        else if (style == CatStyle.Golden) Golden.DrawTailTip(dc, tail, tip);
     }
 
     private static Point Cubic(Point a, Point b, Point c, Point d, double t)
@@ -103,8 +180,9 @@ public static partial class CatArt
                          z*z*z*a.Y+3*z*z*t*b.Y+3*z*t*t*c.Y+t*t*t*d.Y);
     }
 
-    private static void Arm(DrawingContext dc, bool left, Point paw, double lean, double activity, bool tuxedo)
+    private static void Arm(DrawingContext dc, bool left, Point paw, double lean, double activity, CatStyle style)
     {
+        CatCoat coat = CoatOf(style);
         double side = left ? -1 : 1;
         double raised = Smooth((221 - paw.Y)/32);
         Point a = new Point(214 + side*26 - 29*lean, 128);
@@ -133,14 +211,19 @@ public static partial class CatArt
             }
             for (int i=count; i>=0; --i) g.LineTo(secondSide[i],true,true);
         }
-        dc.DrawGeometry(Foreleg, null, limb);
-        if (tuxedo)
+        dc.DrawGeometry(coat.Foreleg, null, limb);
+        if (style == CatStyle.Tuxedo)
         {
             Tuxedo.DrawSock(dc, limb, paw, paw-c, pawRadius, activity);
             return;
         }
+        if (style == CatStyle.Siamese)
+        {
+            Siamese.DrawSock(dc, limb, paw, paw-c, pawRadius, activity);
+            return;
+        }
         // End the continuous foreleg with a soft mitten shape even at oblique key reaches.
-        dc.DrawEllipse(Foreleg,null,paw,pawRadius+0.35,pawRadius*(0.94-0.06*activity));
+        dc.DrawEllipse(coat.Foreleg,null,paw,pawRadius+0.35,pawRadius*(0.94-0.06*activity));
         if (raised > 0.1)
         {
             dc.PushOpacity(raised * 0.85);
@@ -150,12 +233,12 @@ public static partial class CatArt
                 g.BeginFigure(new Point(paw.X+side*7.5,paw.Y+0.7),false,false);
                 g.BezierTo(new Point(paw.X+side*7.1,paw.Y+6.2),new Point(paw.X+side*2.7,paw.Y+8.2),new Point(paw.X-side*2.3,paw.Y+7.7),true,true);
             }
-            dc.DrawGeometry(null,PawLight,rim);
+            dc.DrawGeometry(null,coat.PawRim,rim);
             dc.Pop();
         }
     }
 
-    private static void Eye(DrawingContext dc, double side, double gx, double gy, double blink)
+    private static void Eye(DrawingContext dc, double side, double gx, double gy, double blink, CatCoat coat)
     {
         double angle = side*3 + gx*4;
         double x = side*19.1 + gx*2.6;
@@ -171,20 +254,21 @@ public static partial class CatArt
                 g.BeginFigure(new Point(x-width*0.86,y),false,false);
                 g.QuadraticBezierTo(new Point(x,y+3.0),new Point(x+width*0.86,y-0.2),true,true);
             }
-            dc.DrawGeometry(null,Lid,slit);
+            dc.DrawGeometry(null,coat.Lid,slit);
         }
         else
         {
             EllipseGeometry iris = new EllipseGeometry(new Point(x,y),width,height);
-            dc.DrawGeometry(Iris,null,iris);
+            dc.DrawGeometry(coat.Iris,null,iris);
+            if (coat.EyeRim != null) dc.DrawGeometry(null,coat.EyeRim,iris);
             dc.PushClip(iris);
-            dc.DrawEllipse(Pupil,null,new Point(x+gx*7.8,y+gy*6.7),4.3+Math.Abs(gy)*0.8,8.1);
+            dc.DrawEllipse(coat.Pupil,null,new Point(x+gx*7.8,y+gy*6.7),4.3+Math.Abs(gy)*0.8,8.1);
             dc.Pop();
         }
         dc.Pop();
     }
 
-    private static void Whiskers(DrawingContext dc, double side, double gx)
+    private static void Whiskers(DrawingContext dc, double side, double gx, CatCoat coat)
     {
         double cheek = side*26 + gx*3;
         for (int k=0; k<3; ++k)
@@ -197,40 +281,54 @@ public static partial class CatArt
                 g.BeginFigure(start,false,false);
                 g.QuadraticBezierTo(new Point((start.X+end.X)/2,start.Y-1.1+k*0.65),end,true,true);
             }
-            dc.DrawGeometry(null,Whisker,whisker);
-            dc.DrawLine(RootPen,start,new Point(start.X+side*(6.2-k*0.9),start.Y-0.45+k*0.65));
+            dc.DrawGeometry(null,coat.Whisker,whisker);
+            dc.DrawLine(coat.Root,start,new Point(start.X+side*(6.2-k*0.9),start.Y-0.45+k*0.65));
         }
     }
 
     public static void DrawStyled(DrawingContext dc, CatStyle style, double t, double gazeX, double gazeY,
                                   double blink, Point leftPaw, Point rightPaw, double leftActivity, double rightActivity)
     {
-        bool tuxedo = style == CatStyle.Tuxedo;
+        CatCoat coat = CoatOf(style);
         double gx=Limit(gazeX,-1,1), gy=Limit(gazeY,-1,1);
         double lean=Smooth((157-leftPaw.X)/50);
         double breath=Math.Sin(t*1.7)*0.72;
-        Tail(dc,t,tuxedo);
+        Tail(dc,t,style);
 
         // Keep the hips planted while the chest follows the outstretched mouse paw.
         dc.PushTransform(new MatrixTransform(1,0,lean*0.282,1, -233*lean*0.282,0));
         // Forelegs overlap one solid torso at every reach, including two-key chords.
-        dc.DrawGeometry(Fur, null, Body);
-        if (tuxedo) Tuxedo.DrawBodyMarkings(dc, Body);
+        dc.DrawGeometry(coat.Fur, null, Body);
+        DrawBodyMarkings(style, dc, Body);
         dc.Pop();
-        Arm(dc,false,rightPaw,lean,rightActivity,tuxedo);
-        Arm(dc,true,leftPaw,lean,leftActivity,tuxedo);
+        Arm(dc,false,rightPaw,lean,rightActivity,style);
+        Arm(dc,true,leftPaw,lean,leftActivity,style);
 
         dc.PushTransform(new TranslateTransform(214 - 45*lean + gx*3.2, 86 + breath + gy*2.0 + lean*1.2));
         dc.PushTransform(new RotateTransform(gx*2.8 - lean*3.2));
-        DrawHead(dc, tuxedo, gx, gy, blink);
+        DrawHead(dc, style, gx, gy, blink);
         dc.Pop();
         dc.Pop();
+    }
+
+    private static void DrawBodyMarkings(CatStyle style, DrawingContext dc, Geometry body)
+    {
+        if (style == CatStyle.Tuxedo) Tuxedo.DrawBodyMarkings(dc, body);
+        else if (style == CatStyle.Siamese) Siamese.DrawBodyMarkings(dc, body);
+        else if (style == CatStyle.Golden) Golden.DrawBodyMarkings(dc, body);
+    }
+
+    // Flat body render for the sprite exporter: torso plus coat markings, no pose.
+    internal static void DrawBodySprite(DrawingContext dc, CatStyle style)
+    {
+        dc.DrawGeometry(CoatOf(style).Fur, null, Body);
+        DrawBodyMarkings(style, dc, Body);
     }
 
     // Head-space bounds including whiskers are approximately (-57,-64) to (57,35).
     public static void DrawPortrait(DrawingContext dc, CatStyle style)
     {
-        DrawHead(dc, style == CatStyle.Tuxedo, 0, 0, 0);
+        DrawHead(dc, style, 0, 0, 0);
     }
 
     public static bool ContainsHead(CatStyle style, Point pointer, double time,
@@ -239,15 +337,18 @@ public static partial class CatArt
         return Math.Pow((pointer.X - 212) / 63, 2) + Math.Pow((pointer.Y - 85) / 53, 2) < 1;
     }
 
-    private static void DrawHead(DrawingContext dc, bool tuxedo, double gx, double gy, double blink)
+    private static void DrawHead(DrawingContext dc, CatStyle style, double gx, double gy, double blink)
     {
-        dc.DrawGeometry(Face, null, Head);
-        dc.DrawGeometry(Ear, null, EarLeft);
-        dc.DrawGeometry(Ear, null, EarRight);
-        if (tuxedo) Tuxedo.DrawFaceMarkings(dc, Head, gx);
-        Eye(dc,-1,gx,gy,Limit(blink,0,1));
-        Eye(dc,1,gx,gy,Limit(blink,0,1));
-        Whiskers(dc,-1,gx);
-        Whiskers(dc,1,gx);
+        CatCoat coat = CoatOf(style);
+        dc.DrawGeometry(coat.Face, null, Head);
+        dc.DrawGeometry(coat.Ear, null, EarLeft);
+        dc.DrawGeometry(coat.Ear, null, EarRight);
+        if (style == CatStyle.Tuxedo) Tuxedo.DrawFaceMarkings(dc, Head, gx);
+        else if (style == CatStyle.Siamese) Siamese.DrawFaceMarkings(dc, Head, gx);
+        else if (style == CatStyle.Golden) Golden.DrawFaceMarkings(dc, Head, gx);
+        Eye(dc,-1,gx,gy,Limit(blink,0,1),coat);
+        Eye(dc,1,gx,gy,Limit(blink,0,1),coat);
+        Whiskers(dc,-1,gx,coat);
+        Whiskers(dc,1,gx,coat);
     }
 }

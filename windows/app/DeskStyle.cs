@@ -1,4 +1,4 @@
-public enum CatStyle { Black, Tuxedo }
+public enum CatStyle { Black, Tuxedo, Siamese, Golden }
 public enum KeyboardStyle { Classic, Round, Neon, Wood }
 public enum MouseStyle { Classic, Pebble, Gaming, Trackball }
 public enum CursorStyle { Bird, Teaser }

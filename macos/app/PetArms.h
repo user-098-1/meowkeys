@@ -5,8 +5,8 @@
 #include <math.h>
 
 // Scene coordinates are logical points in a flipped 480 x 320 view.
-// Both coats share the black-cat pose rig; cat 1 is the tuxedo coat, whose
-// white bib sock and paw follow the Windows TuxedoArt shapes.
+// All coats share the black-cat pose rig; gradients and socks follow the
+// Windows per-style coat definitions in CatArt.cs / SiameseArt.cs / GoldenArt.cs.
 typedef struct {
     CGPoint shoulder, nearControl, farControl, paw;
     int side;
@@ -57,10 +57,15 @@ static CGPathRef KCArmOutline(KCArmCurve c,CGFloat pawRadius) {
 static inline void KCArmStrokeColor(CGContextRef ctx,unsigned color,CGFloat alpha) {
     CGContextSetRGBStrokeColor(ctx,((color>>16)&255)/255.,((color>>8)&255)/255.,(color&255)/255.,alpha);
 }
+// Gradient swatch slots: 0 black limb, 1 tuxedo white sock, 2 siamese ivory limb,
+// 3 siamese seal sock, 4 golden limb.
+enum { LimbBlack=0, SoxWhite=1, LimbIvory=2, SoxSeal=3, LimbGold=4 };
 static CGGradientRef KCArmGradient(int index) {
     // These immutable swatches live as long as the main-thread scene.
-    static CGGradientRef palette[2];
-    static const unsigned colors[2][2]={{0x1e1c1f,0x18171a},{0xfff9ee,0xe2d9cb}};
+    static CGGradientRef palette[5];
+    static const unsigned colors[5][2]={{0x1e1c1f,0x18171a},{0xfff9ee,0xe2d9cb},
+                                        {0xf0e8da,0xe2d8c8},{0x3e302c,0x2d221f},
+                                        {0xeccc94,0xb88c52}};
     if(!palette[index]){
         CGFloat rgba[8];for(int i=0;i<2;i++){
             unsigned rgb=colors[index][i];
@@ -73,15 +78,16 @@ static CGGradientRef KCArmGradient(int index) {
 }
 static void KCArmPaintPath(CGContextRef ctx,CGPathRef p,int index) {
     CGRect b=CGPathGetPathBoundingBox(p);if(b.size.width<=0 || b.size.height<=0)return;
-    // Anchor points mirror the WPF relative gradients: black fur runs (.2,0)→(.9,1),
-    // tuxedo white runs (.2,0)→(.8,1).
-    CGPoint z=index?CGPointMake(.8,1):CGPointMake(.9,1);
+    // Anchor points mirror the WPF relative gradients: limb fur runs (.2,0)→(.9,1),
+    // socks run (.2,0)→(.8,1).
+    CGPoint z=(index==1||index==3)?CGPointMake(.8,1):CGPointMake(.9,1);
     CGContextSaveGState(ctx);CGContextAddPath(ctx,p);CGContextClip(ctx);
     CGContextTranslateCTM(ctx,b.origin.x,b.origin.y);CGContextScaleCTM(ctx,b.size.width,b.size.height);
     CGContextDrawLinearGradient(ctx,KCArmGradient(index),CGPointMake(.2,0),z,kCGGradientDrawsBeforeStartLocation|kCGGradientDrawsAfterEndLocation);
     CGContextRestoreGState(ctx);
 }
-static void KCTuxedoSock(CGContextRef ctx,KCArmCurve c,CGPathRef limb,CGPoint paw,CGFloat radius,CGFloat activity) {
+static void KCPointSock(CGContextRef ctx,KCArmCurve c,CGPathRef limb,CGPoint paw,CGFloat radius,
+                        CGFloat activity,int sox,unsigned rim) {
     CGFloat dx=paw.x-c.farControl.x,dy=paw.y-c.farControl.y,length=hypot(dx,dy);
     if(length*length<.001){dx=0;dy=1;}else{dx/=length;dy/=length;}
     CGContextSaveGState(ctx);CGContextAddPath(ctx,limb);CGContextClip(ctx);
@@ -96,12 +102,12 @@ static void KCTuxedoSock(CGContextRef ctx,KCArmCurve c,CGPathRef limb,CGPoint pa
     CGPathAddQuadCurveToPoint(sock,NULL,7,7.4,0,9.4);
     CGPathAddQuadCurveToPoint(sock,NULL,-8.1,8.3,-9.6,.5);
     CGPathCloseSubpath(sock);
-    KCArmPaintPath(ctx,sock,1);CGPathRelease(sock);
+    KCArmPaintPath(ctx,sock,sox);CGPathRelease(sock);
     CGContextRestoreGState(ctx);
     CGFloat rx=radius+.35,ry=radius*(.94-.06*activity);
     CGPathRef cap=CGPathCreateWithEllipseInRect(CGRectMake(paw.x-rx,paw.y-ry,rx*2,ry*2),NULL);
-    KCArmPaintPath(ctx,cap,1);
-    KCArmStrokeColor(ctx,0x968d82,1);CGContextSetLineWidth(ctx,.9);
+    KCArmPaintPath(ctx,cap,sox);
+    KCArmStrokeColor(ctx,rim,1);CGContextSetLineWidth(ctx,.9);
     CGContextAddPath(ctx,cap);CGContextStrokePath(ctx);CGPathRelease(cap);
 }
 static void KCDrawArm(CGContextRef ctx,NSInteger cat,BOOL left,CGPoint paw,double lean,double activity) {
@@ -109,16 +115,19 @@ static void KCDrawArm(CGContextRef ctx,NSInteger cat,BOOL left,CGPoint paw,doubl
     KCArmCurve c=KCMakeArmCurve(left,paw,lean);
     CGPathRef limb=KCArmOutline(c,radius);
     CGContextSaveGState(ctx);CGContextSetLineCap(ctx,kCGLineCapRound);
-    KCArmPaintPath(ctx,limb,0);
+    int limbGradient=cat==2?LimbIvory:(cat==3?LimbGold:LimbBlack);
+    KCArmPaintPath(ctx,limb,limbGradient);
     if(cat==1){
-        KCTuxedoSock(ctx,c,limb,paw,radius,activity);
+        KCPointSock(ctx,c,limb,paw,radius,activity,SoxWhite,0x968d82);
+    }else if(cat==2){
+        KCPointSock(ctx,c,limb,paw,radius,activity,SoxSeal,0x8a7a70);
     }else{
         CGFloat rx=radius+.35,ry=radius*(.94-.06*activity);
         CGRect box=CGRectMake(paw.x-rx,paw.y-ry,rx*2,ry*2);
-        CGPathRef cap=CGPathCreateWithEllipseInRect(box,NULL);KCArmPaintPath(ctx,cap,0);CGPathRelease(cap);
+        CGPathRef cap=CGPathCreateWithEllipseInRect(box,NULL);KCArmPaintPath(ctx,cap,limbGradient);CGPathRelease(cap);
         CGFloat raised=KCArmSmooth((221-paw.y)/32);
         if(raised>.1){
-            KCArmStrokeColor(ctx,0x5c595b,raised*.85);CGContextSetLineWidth(ctx,.95);CGContextBeginPath(ctx);
+            KCArmStrokeColor(ctx,cat==3?0x96744a:0x5c595b,raised*.85);CGContextSetLineWidth(ctx,.95);CGContextBeginPath(ctx);
             CGContextMoveToPoint(ctx,paw.x+c.side*7.5,paw.y+.7);
             CGContextAddCurveToPoint(ctx,paw.x+c.side*7.1,paw.y+6.2,paw.x+c.side*2.7,paw.y+8.2,paw.x-c.side*2.3,paw.y+7.7);
             CGContextStrokePath(ctx);
