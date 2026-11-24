@@ -29,6 +29,7 @@ jobs:
         with:
           name: macos-zip
           path: macos/build/Meowkeys-*-macOS.zip
+          if-no-files-found: error
 
       - name: 上传到 Release
         if: ${{ github.event_name == 'push' || inputs.tag != '' }}
@@ -36,3 +37,4 @@ jobs:
         with:
           tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
           files: macos/build/Meowkeys-*-macOS.zip
+          fail_on_unmatched_files: true
